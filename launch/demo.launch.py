@@ -46,15 +46,15 @@ def generate_launch_description():
     # planning_context
     robot_description_config = xacro.process_file(
         os.path.join(
-            get_package_share_directory("reachy_description_ros2"),
+            get_package_share_directory("reachy_description"),
             "urdf",
-            "reachy.URDF.xacro",
+            "reachy.urdf.xacro",
         )
     )
     robot_description = {"robot_description": robot_description_config.toxml()}
 
     robot_description_semantic_config = load_file(
-        "reachy_moveit_config_ros2", "config/reachy.srdf"
+        "reachy_moveit_config_ros2", "config/reachy2.srdf"
     )
     robot_description_semantic = {
         "robot_description_semantic": robot_description_semantic_config
@@ -177,23 +177,35 @@ def generate_launch_description():
     ros2_control_node = Node(
         package="controller_manager",
         executable="ros2_control_node",
-        parameters=[robot_description, ros2_controllers_path],
+        parameters=[ros2_controllers_path],
         output={
             "stdout": "screen",
             "stderr": "screen",
         },
+        remappings=[('~/robot_description', '/robot_description')]
     )
 
-    # Load controllers
+    # Load controllerneck
+    # load_controllers = []
+    # for controller in ["reachy_left_arm_controller","reachy_right_arm_controller","reachy_head_controller", "joint_state_controller"]:
+    #     load_controllers += [
+    #         ExecuteProcess(
+    #             cmd=["ros2 run controller_manager spawner {}".format(controller)],
+    #             shell=True,
+    #             output="screen",
+    #         )
+    #     ]
+
     load_controllers = []
-    for controller in ["reachy_left_arm_controller","reachy_right_arm_controller","reachy_head_controller", "joint_state_controller"]:
-        load_controllers += [
+    for controller in ["joint_state_controller", "reachy_left_arm_controller", "reachy_right_arm_controller", "reachy_head_controller"]:
+        load_controllers.append(
             ExecuteProcess(
-                cmd=["ros2 run controller_manager spawner.py {}".format(controller)],
-                shell=True,
+                cmd=["ros2", "run", "controller_manager", "spawner",
+                    "--controller-manager-timeout", "10", controller],
+                shell=False,
                 output="screen",
             )
-        ]
+        )
 
     # Warehouse mongodb server
     db_config = LaunchConfiguration("db")
